@@ -5,9 +5,9 @@ import type { Product } from "../models";
 import { ProductRepository } from "../repositories";
 
 api.fn.getProducts = async () => {
-  const users = await use(ProductRepository).find();
+  const products = await use(ProductRepository).find();
 
-  return users;
+  return products;
 };
 
 api.fn.createProduct = async (_ctx, { name, price }) => {

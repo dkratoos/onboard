@@ -1,4 +1,4 @@
-import { Check, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Check, Column, Entity, PrimaryGeneratedColumn, OneToOne, OneToMany } from "typeorm";
 import { Client } from "../models";
 import { Product } from "../models";
 
@@ -13,9 +13,9 @@ export class Order {
   @Column()
   number!: number;
 
-  @Column()
+  @OneToOne(() => Client)
   client!: Client;
 
-  @Column()
+  @OneToMany(() => Product, product => product.name)
   products!: Product[];
 }

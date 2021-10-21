@@ -15,4 +15,3 @@ type NewOrder {
 
 fn getOrders(): Order[]
 fn createOrder(order: NewOrder): Order
-// fn createOrder(name: string, number: uint, client: Client, products: Product[]): Order
