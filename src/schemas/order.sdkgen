@@ -1,0 +1,18 @@
+type Order {
+    id: uuid
+    name: string
+    number: uint
+    client: Client
+    products: Product[]
+}
+
+type NewOrder {
+    name: string
+    number: uint
+    client: Client
+    products: Product[]
+}
+
+fn getOrders(): Order[]
+fn createOrder(order: NewOrder): Order
+// fn createOrder(name: string, number: uint, client: Client, products: Product[]): Order

@@ -1,0 +1,149 @@
+image: node:14-alpine
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+
+variables:
+  SAST_EXCLUDED_ANALYZERS: eslint
+
+stages:
+  - test
+  - build
+  - deploy
+
+ESLint:
+  stage: test
+  script:
+    - npm ci
+    - npm run eslint:check
+
+Type Check:
+  stage: test
+  script:
+    - npm ci
+    - npx tsc -noEmit
+
+NPM Audit:
+  stage: test
+  allow_failure: true
+  script:
+    - npm audit
+
+Check TODOs:
+  stage: test
+  allow_failure: true
+  script:
+    - npm install --g leasot
+    - leasot 'src/**/*.ts' 'tests/**/*.ts'
+
+Check API compatibility:
+  image: node:14
+  stage: test
+  allow_failure: true
+  script:
+    - export TARGET_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+    - npm ci
+    - git fetch origin $TARGET_BRANCH:$TARGET_BRANCH
+    - git config --global user.email "ci@example.com"
+    - git config --global user.name "CI"
+    - git merge $TARGET_BRANCH --no-edit
+    - mkdir src/.current
+    - cp -r src/api.sdkgen src/schemas src/.current/
+    - git checkout $TARGET_BRANCH
+    - npx sdkgen compatibility src/api.sdkgen src/.current/api.sdkgen
+
+sdkgen (check no diff):
+  stage: test
+  script:
+    - npm ci
+    - npm run sdkgen
+    - "[[ -z $(git status -s) ]]"
+
+Test:
+  stage: test
+  services:
+    - postgres:13-alpine
+  script:
+    - cat <<END > .env
+    - DB_HOST=localhost
+    - DB_USERNAME=postgres
+    - DB_PASSWORD=
+    - DB_DATABASE=postgres
+    - DB_PORT=5432
+    - DB_LOGGING=true
+    - END
+    - echo FAKER_SEED=$((RANDOM)) | tee -a .env
+    - npm ci
+    - npm test
+  artifacts:
+    paths:
+      - coverage/
+    when: always
+    expire_in: 1 day
+
+Analyze (SonarQube):
+  stage: test
+  allow_failure: true
+  image:
+    name: newtmitch/sonar-scanner:3.3.0
+    entrypoint: [""]
+  only:
+    - master
+  script:
+    - rm package.json
+    - npm init -y
+    - npm install typescript
+    - sonar-scanner -Dsonar.sources='./src,./tests' -Dsonar.coverage.exclusions='**/node_modules/**/*,**/ormconfig.js,**/src/generated/**/*,**/src/helpers/schema-validator.ts,**/src/helpers/sql.ts,**/src/helpers/translate.ts,**/src/migrations/**/*,**/src/services/Sentry.ts,**/src/services/Config.ts,**/tests/**/*' -Dsonar.exclusions='**/node_modules/**/*,**/src/generated/**/*,**/src/migrations/**/*' -Dsonar.tests='src/generated' -Dsonar.typescript.lcov.reportPaths='coverage/lcov.info' -Dsonar.javascript.lcov.reportPaths='coverage/lcov.info' -Dsonar.projectKey=$CI_PROJECT_NAME -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.projectVersion=$CI_PIPELINE_ID -Dsonar.projectBaseDir=$PWD -Dsonar.host.url=$SONAR_URL -Dsonar.login=$SONAR_LOGIN -Dsonar.gitlab.commit_sha=$CI_COMMIT_SHA -Dsonar.gitlab.ref_name=$CI_COMMIT_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
+
+Analyze Commit (SonarQube):
+  stage: test
+  allow_failure: true
+  image:
+    name: newtmitch/sonar-scanner:3.3.0
+    entrypoint: [""]
+  except:
+    - master
+  script:
+    - rm package.json
+    - npm init -y
+    - npm install typescript
+    - sonar-scanner -Dsonar.analysis.mode=preview -Dsonar.sources='./src,./tests' -Dsonar.coverage.exclusions='**/node_modules/**/*,**/ormconfig.js,**/src/generated/**/*,**/src/helpers/schema-validator.ts,**/src/helpers/sql.ts,**/src/helpers/translate.ts,**/src/migrations/**/*,**/src/services/Sentry.ts,**/src/services/Config.ts,**/tests/**/*' -Dsonar.exclusions='**/node_modules/**/*,**/src/generated/**/*,**/src/migrations/**/*' -Dsonar.tests='src/generated' -Dsonar.typescript.lcov.reportPaths='coverage/lcov.info' -Dsonar.javascript.lcov.reportPaths='coverage/lcov.info' -Dsonar.projectKey=$CI_PROJECT_NAME -Dsonar.projectName=$CI_PROJECT_NAME -Dsonar.projectVersion=$CI_PIPELINE_ID -Dsonar.projectBaseDir=$PWD -Dsonar.host.url=$SONAR_URL -Dsonar.login=$SONAR_LOGIN -Dsonar.gitlab.commit_sha=$CI_COMMIT_SHA -Dsonar.gitlab.ref_name=$CI_COMMIT_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
+
+Build:
+  image: docker
+  stage: build
+  except:
+    - develop
+    - master
+  script:
+    - docker build --pull .
+
+Build for Deploy:
+  image: docker
+  stage: build
+  only:
+    - develop
+    - master
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - docker build --pull -t $CI_REGISTRY_IMAGE:v$CI_PIPELINE_ID -f Dockerfile .
+    - docker push $CI_REGISTRY_IMAGE:v$CI_PIPELINE_ID
+
+# Deploy Develop:
+#   image: registry.cubos.io/cubos/cli
+#   stage: deploy
+#   only:
+#     - develop
+#   script:
+#     - dev_cluster_from_env KUBERNETES_DEV_TOKEN
+#     - deploy
+
+# Deploy Master:
+#   image: registry.cubos.io/cubos/cli
+#   stage: deploy
+#   only:
+#     - master
+#   script:
+#     - cluster_from_env KUBERNETES_TOKEN
+#     - deploy

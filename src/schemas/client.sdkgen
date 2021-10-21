@@ -1,0 +1,8 @@
+type Client {
+    id: uuid
+    name: string
+    cpf: cpf
+}
+
+fn getClients(): Client[]
+fn createClient(name: string, cpf: cpf): Client

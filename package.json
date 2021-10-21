@@ -1,0 +1,51 @@
+{
+  "name": "api-example",
+  "version": "0.0.1",
+  "description": "Example project built with sdkgen and TypeORM",
+  "scripts": {
+    "sdkgen": "sdkgen src/api.sdkgen -o src/generated/api.ts -t typescript_nodeserver",
+    "dev": "nodemon --exec node --async-stack-traces --inspect -r ts-node/register -r dotenv/config src/server.ts",
+    "postinstall": "git config core.hooksPath ./.githooks",
+    "migration:create": "typeorm migration:create --dir src/migrations --name",
+    "migration:generate": "npm run migration:run && ts-node -r dotenv/config ./node_modules/typeorm/cli.js migration:generate --name",
+    "migration:revert": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js migration:revert",
+    "migration:run": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js migration:run",
+    "eslint:fix": "eslint --fix '**/*.{t,j}s'",
+    "eslint:check": "eslint '**/*.{t,j}s'",
+    "postgres:start": "docker run -d -p 5432:5432 --name postgres -e POSTGRES_HOST_AUTH_METHOD=trust postgres:13-alpine",
+    "database:create": "docker exec postgres psql -U postgres postgres -c \"CREATE DATABASE $(grep DB_DATABASE .env | cut -d= -f 2)\"",
+    "test": "node --async-stack-traces node_modules/jest/bin/jest.js -w4"
+  },
+  "dependencies": {
+    "@cubos/env": "^1.0.1",
+    "@cubos/inject": "^1.2.0",
+    "@sdkgen/node-runtime": "1.6.1",
+    "@sentry/node": "^6.13.3",
+    "ajv": "^8.6.3",
+    "ajv-formats": "^2.1.1",
+    "axios": "^0.23.0",
+    "axios-retry": "^3.2.2",
+    "pg": "^8.7.1",
+    "reflect-metadata": "^0.1.13",
+    "source-map-support": "^0.5.20",
+    "typeorm": "^0.2.38",
+    "typeorm-naming-strategies": "^2.0.0"
+  },
+  "devDependencies": {
+    "@cubos/eslint-config": "^1.0.553260",
+    "@sdkgen/cli": "1.6.1",
+    "@types/faker": "^5.5.8",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.0",
+    "as-typed": "^1.3.1",
+    "axios-mock-adapter": "^1.20.0",
+    "dotenv": "^10.0.0",
+    "faker": "^5.5.3",
+    "jest": "^27.2.5",
+    "lint-staged": "^11.2.3",
+    "nodemon": "^2.0.13",
+    "ts-jest": "^27.0.6",
+    "ts-node": "^10.3.0",
+    "typescript": "^4.4.4"
+  }
+}

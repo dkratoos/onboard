@@ -1,0 +1,7 @@
+type Product {
+    id: uuid
+    name: string
+}
+
+fn getProducts(): Product[]
+fn createProduct(name: string, price: float): Product

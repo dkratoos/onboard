@@ -1,0 +1,6 @@
+import "./schemas/errors"
+import "./schemas/shows"
+import "./schemas/user"
+import "./schemas/product"
+import "./schemas/client"
+import "./schemas/order"

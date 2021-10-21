@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+
+npx lint-staged
+sed -i -e 's/http:\/\//https:\/\//g' package-lock.json
+npm run sdkgen
+git diff --cached --diff-filter=M --exit-code src/migrations

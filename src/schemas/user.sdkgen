@@ -1,0 +1,7 @@
+type User {
+    id: uuid
+    name: string
+}
+
+fn getUsers(): User[]
+fn createUser(name: string, age: uint): User
